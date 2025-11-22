@@ -32,11 +32,19 @@ Resources:
           Properties:
             Path: /consult
             Method: get
+            RestApiId: !Ref ThinkTwiceApi
         PostEvent:
           Type: Api
           Properties:
             Path: /consult
             Method: post
+            RestApiId: !Ref ThinkTwiceApi
+        OptionsEvent:
+          Type: Api
+          Properties:
+            Path: /consult
+            Method: options
+            RestApiId: !Ref ThinkTwiceApi
     Metadata:
       BuildMethod: esbuild
       BuildProperties:
@@ -46,10 +54,19 @@ Resources:
         EntryPoints:
           - src/index.ts
 
-Outputs:
   ThinkTwiceApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: Prod
+      Cors:
+        AllowMethods: "'GET, POST, OPTIONS'"
+        AllowHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+        AllowOrigin: "'*'"
+
+Outputs:
+  ThinkTwiceApiUrl:
     Description: "API Gateway endpoint URL"
-    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/consult"
+    Value: !Sub "https://${ThinkTwiceApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/consult"
   ThinkTwiceFunction:
     Description: "Lambda Function ARN"
     Value: !GetAtt ThinkTwiceFunction.Arn
