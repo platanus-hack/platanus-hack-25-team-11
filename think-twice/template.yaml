@@ -2,9 +2,15 @@ AWSTemplateFormatVersion: "2010-09-09"
 Transform: AWS::Serverless-2016-10-31
 Description: TypeScript Lambda Function with API Gateway
 
+Parameters:
+  AnthropicApiKey:
+    Type: String
+    Description: Anthropic API Key for Claude
+    NoEcho: true
+
 Globals:
   Function:
-    Timeout: 30
+    Timeout: 180
     MemorySize: 256
     Runtime: nodejs20.x
     Architectures:
@@ -12,6 +18,7 @@ Globals:
     Environment:
       Variables:
         NODE_ENV: production
+        ANTHROPIC_API_KEY: !Ref AnthropicApiKey
 
 Resources:
   ThinkTwiceFunction:

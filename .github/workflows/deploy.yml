@@ -62,7 +62,8 @@ jobs:
             --region us-east-1 \
             --resolve-s3 \
             --no-confirm-changeset \
-            --no-fail-on-empty-changeset
+            --no-fail-on-empty-changeset \
+            --parameter-overrides AnthropicApiKey=${{ secrets.ANTHROPIC_API_KEY }}
 
       - name: Get API URL
         working-directory: ./
