@@ -1,249 +1,182 @@
-// Checkout detection content script
+// Go To Checkout Blocker content script
 
-class CheckoutDetector {
+class CheckoutBlocker {
   constructor() {
-    this.checkoutIndicators = {
-      urlPatterns: [
-        /checkout/i,
-        /cart/i,
-        /payment/i,
-        /billing/i,
-        /order/i,
-        /purchase/i,
-        /pay/i
-      ],
-      formFields: [
-        'credit-card',
-        'card-number',
-        'cvv',
-        'cvc',
-        'billing-address',
-        'shipping-address',
-        'cardholder',
-        'expiry',
-        'card_number',
-        'cc-number'
-      ],
-      textPatterns: [
-        /place\s+order/i,
-        /complete\s+purchase/i,
-        /pay\s+now/i,
-        /checkout/i,
-        /confirm\s+order/i,
-        /submit\s+payment/i,
-        /billing\s+information/i,
-        /payment\s+method/i,
-        /credit\s+card/i,
-        /debit\s+card/i
-      ],
-      selectors: [
-        '[name*="card"]',
-        '[id*="card"]',
-        '[name*="payment"]',
-        '[id*="payment"]',
-        '[name*="billing"]',
-        '[id*="billing"]',
-        'input[type="tel"][maxlength="16"]',
-        'input[type="tel"][maxlength="19"]',
-        'input[autocomplete="cc-number"]',
-        'input[autocomplete="cc-exp"]',
-        'input[autocomplete="cc-csc"]'
-      ]
-    };
+    // Patterns to detect checkout URLs and links
+    this.checkoutPatterns = [
+      /checkout/i,
+      /payment/i,
+      /billing/i,
+      /pay/i,
+      /paga/i,
+      /pagar/i,
+      /pago/i,
+      /comprar/i,
+      /orden/i,
+      /order/i
+    ];
+
+    // Patterns to detect cart pages
+    this.cartPatterns = [
+      /cart/i,
+      /basket/i,
+      /bag/i,
+      /carrito/i,
+      /cesta/i
+    ];
+
+    this.lastAlertTime = 0;
+    this.ALERT_COOLDOWN = 5 * 60 * 1000; // 5 minutes in milliseconds
+    this.loadLastAlertTime();
   }
 
-  detectCheckout() {
-    const results = {
-      isCheckout: false,
-      confidence: 0,
-      indicators: [],
-      timestamp: new Date().toISOString(),
-      url: window.location.href
-    };
-
-    // Check URL
-    const urlScore = this.checkURL();
-    if (urlScore > 0) {
-      results.indicators.push({ type: 'url', score: urlScore });
-      results.confidence += urlScore;
+  loadLastAlertTime() {
+    const saved = localStorage.getItem('checkoutBlockerLastAlert');
+    if (saved) {
+      this.lastAlertTime = parseInt(saved, 10);
+      console.log('[CheckoutBlocker] Loaded last alert time:', new Date(this.lastAlertTime));
     }
-
-    // Check form fields
-    const formScore = this.checkFormFields();
-    if (formScore > 0) {
-      results.indicators.push({ type: 'form_fields', score: formScore });
-      results.confidence += formScore;
-    }
-
-    // Check page text
-    const textScore = this.checkPageText();
-    if (textScore > 0) {
-      results.indicators.push({ type: 'text_content', score: textScore });
-      results.confidence += textScore;
-    }
-
-    // Check specific selectors
-    const selectorScore = this.checkSelectors();
-    if (selectorScore > 0) {
-      results.indicators.push({ type: 'selectors', score: selectorScore });
-      results.confidence += selectorScore;
-    }
-
-    // Normalize confidence to 0-100
-    results.confidence = Math.min(100, results.confidence);
-    results.isCheckout = results.confidence > 30;
-
-    return results;
   }
 
-  checkURL() {
+  saveLastAlertTime() {
+    localStorage.setItem('checkoutBlockerLastAlert', this.lastAlertTime.toString());
+    console.log('[CheckoutBlocker] Saved last alert time:', new Date(this.lastAlertTime));
+  }
+
+  canShowAlert() {
+    const now = Date.now();
+    if (now - this.lastAlertTime < this.ALERT_COOLDOWN) {
+      console.log('[CheckoutBlocker] Alert cooldown active, skipping');
+      return false;
+    }
+    return true;
+  }
+
+  showAlert() {
+    if (!this.canShowAlert()) {
+      return true;
+    }
+
+    const confirmed = confirm('¿Estás seguro que quieres gastar tu dinero en estupideces?');
+    this.lastAlertTime = Date.now();
+    this.saveLastAlertTime();
+    console.log('[CheckoutBlocker] Alert shown at', new Date(this.lastAlertTime));
+    return confirmed;
+  }
+
+  isCartPage() {
     const url = window.location.href.toLowerCase();
-    let score = 0;
-
-    for (const pattern of this.checkoutIndicators.urlPatterns) {
-      if (pattern.test(url)) {
-        score += 15;
-      }
-    }
-
-    return Math.min(40, score);
+    return this.cartPatterns.some(pattern => pattern.test(url));
   }
 
-  checkFormFields() {
-    let score = 0;
-    const inputs = document.querySelectorAll('input');
+  isCheckoutLink(url) {
+    if (!url) return false;
+    const urlLower = url.toLowerCase();
+    return this.checkoutPatterns.some(pattern => pattern.test(urlLower));
+  }
 
-    inputs.forEach(input => {
-      const name = (input.name || '').toLowerCase();
-      const id = (input.id || '').toLowerCase();
-      const autocomplete = (input.autocomplete || '').toLowerCase();
+  getMainContent() {
+    const mainTag = document.querySelector('main');
+    if (!mainTag) {
+      return 'No main tag found';
+    }
 
-      for (const field of this.checkoutIndicators.formFields) {
-        if (name.includes(field) || id.includes(field) || autocomplete.includes(field)) {
-          score += 10;
-          break;
+    let html = mainTag.innerHTML;
+    // Remove src attributes, style and script tags
+    html = html
+      .replace(/\ssrc="[^"]*"/gi, '')
+      .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+      .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '');
+
+    return html;
+  }
+
+  // Intercept clicks on checkout links/buttons from cart pages
+  setupClickInterception() {
+    console.log('[CheckoutBlocker] Setting up click interception');
+
+    document.addEventListener('click', (e) => {
+      // Only intercept on cart pages
+      if (!this.isCartPage()) return;
+
+      // Traverse up to find if we clicked on a checkout link or button
+      let target = e.target;
+      while (target && target !== document.body) {
+        // Check if it's a link (anchor tag)
+        if (target.tagName === 'A' && target.href) {
+          if (this.isCheckoutLink(target.href)) {
+            // Log main tag content
+            const mainHtml = this.getMainContent();
+            console.log('[CheckoutBlocker] Intercepted checkout link');
+            console.log('[CheckoutBlocker] Main tag content:', mainHtml);
+            console.log('[CheckoutBlocker] Link href:', target.href);
+
+            e.preventDefault();
+            e.stopPropagation();
+            e.stopImmediatePropagation();
+
+            const confirmed = this.showAlert();
+            if (confirmed) {
+              console.log('[CheckoutBlocker] User confirmed, navigating to:', target.href);
+              window.location.href = target.href;
+            } else {
+              console.log('[CheckoutBlocker] User cancelled');
+            }
+            return false;
+          }
         }
-      }
-    });
 
-    return Math.min(40, score);
-  }
+        // Check if it's a button
+        if (target.tagName === 'BUTTON' || target.getAttribute('role') === 'button') {
+          const buttonText = target.textContent.toLowerCase();
+          if (this.checkoutPatterns.some(pattern => pattern.test(buttonText))) {
+            // Log main tag content
+            const mainHtml = this.getMainContent();
+            console.log('[CheckoutBlocker] Intercepted checkout button');
+            console.log('[CheckoutBlocker] Main tag content:', mainHtml);
+            console.log('[CheckoutBlocker] Button text:', buttonText);
 
-  checkPageText() {
-    const bodyText = document.body.innerText;
-    let score = 0;
+            e.preventDefault();
+            e.stopPropagation();
+            e.stopImmediatePropagation();
 
-    for (const pattern of this.checkoutIndicators.textPatterns) {
-      if (pattern.test(bodyText)) {
-        score += 5;
-      }
-    }
-
-    return Math.min(30, score);
-  }
-
-  checkSelectors() {
-    let score = 0;
-
-    for (const selector of this.checkoutIndicators.selectors) {
-      try {
-        const elements = document.querySelectorAll(selector);
-        if (elements.length > 0) {
-          score += 8;
+            if (!this.showAlert()) {
+              console.log('[CheckoutBlocker] User cancelled');
+              return false;
+            }
+            // If confirmed, let the button's original action proceed
+            console.log('[CheckoutBlocker] User confirmed button click');
+          }
         }
-      } catch (e) {
-        // Invalid selector, skip
-      }
-    }
 
-    return Math.min(40, score);
+        target = target.parentElement;
+      }
+    }, true); // Use capture phase
+
+    console.log('[CheckoutBlocker] Click interception ready');
   }
 
-  extractCheckoutData() {
-    if (!this.detectCheckout().isCheckout) {
-      return null;
-    }
 
-    const data = {
-      url: window.location.href,
-      title: document.title,
-      forms: [],
-      timestamp: new Date().toISOString()
-    };
 
-    // Extract form information
-    const forms = document.querySelectorAll('form');
-    forms.forEach((form, index) => {
-      const formData = {
-        index,
-        action: form.action,
-        method: form.method,
-        fields: []
-      };
+  init() {
+    console.log('[CheckoutBlocker] Initializing...');
 
-      const inputs = form.querySelectorAll('input, select, textarea');
-      inputs.forEach(input => {
-        formData.fields.push({
-          type: input.type || input.tagName.toLowerCase(),
-          name: input.name,
-          id: input.id,
-          placeholder: input.placeholder,
-          required: input.required
-        });
+    // Set up click interception immediately
+    if (document.body) {
+      this.setupClickInterception();
+    } else {
+      document.addEventListener('DOMContentLoaded', () => {
+        this.setupClickInterception();
       });
+    }
 
-      if (formData.fields.length > 0) {
-        data.forms.push(formData);
-      }
-    });
-
-    return data;
+    console.log('[CheckoutBlocker] Initialized');
   }
 }
 
-// Initialize detector
-const detector = new CheckoutDetector();
+// Initialize blocker
+const blocker = new CheckoutBlocker();
+blocker.init();
 
-// Run detection on page load
-function runDetection() {
-  const result = detector.detectCheckout();
-
-  console.log('[Checkout Detector] Analysis:', result);
-
-  // Send result to background script
-  chrome.runtime.sendMessage({
-    type: 'CHECKOUT_DETECTED',
-    data: result
-  });
-
-  // If checkout detected, extract additional data
-  if (result.isCheckout) {
-    const checkoutData = detector.extractCheckoutData();
-    chrome.runtime.sendMessage({
-      type: 'CHECKOUT_DATA',
-      data: checkoutData
-    });
-  }
-}
-
-// Run immediately
-runDetection();
-
-// Watch for dynamic content changes
-const observer = new MutationObserver(() => {
-  runDetection();
-});
-
-observer.observe(document.body, {
-  childList: true,
-  subtree: true
-});
-
-// Listen for messages from popup/background
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  if (request.type === 'GET_CHECKOUT_STATUS') {
-    const result = detector.detectCheckout();
-    sendResponse(result);
-  }
-  return true;
-});
+// Log helper message
+console.log('[CheckoutBlocker] To clear cooldown, run: localStorage.removeItem("checkoutBlockerLastAlert")');

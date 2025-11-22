@@ -1,4 +1,4 @@
-// Background service worker for checkout detection
+// Background service worker for Go To Checkout Blocker
 
 let checkoutStatus = new Map();
 
@@ -24,34 +24,6 @@ function handleCheckoutDetection(data, tab) {
     tabTitle: tab.title
   });
 
-  // Update badge if checkout detected
-  if (data.isCheckout) {
-    chrome.action.setBadgeText({
-      text: '!',
-      tabId: tab.id
-    });
-
-    chrome.action.setBadgeBackgroundColor({
-      color: '#FF6B6B',
-      tabId: tab.id
-    });
-
-    // Show notification
-    if (data.confidence > 70) {
-      chrome.notifications.create({
-        type: 'basic',
-        iconUrl: 'icons/icon48.png',
-        title: 'Checkout Page Detected',
-        message: `High confidence checkout detected (${Math.round(data.confidence)}%)`,
-        priority: 1
-      });
-    }
-  } else {
-    chrome.action.setBadgeText({
-      text: '',
-      tabId: tab.id
-    });
-  }
 
   // Store in chrome.storage for persistence
   chrome.storage.local.set({
@@ -96,4 +68,4 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 });
 
-console.log('[Background] Checkout detector background script loaded');
+console.log('[Background] Go To Checkout Blocker background script loaded');

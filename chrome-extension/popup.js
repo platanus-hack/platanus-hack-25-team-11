@@ -1,4 +1,4 @@
-// Popup script for displaying checkout detection status
+// Popup script for displaying blocker status
 
 function displayStatus(data) {
   const content = document.getElementById('content');
