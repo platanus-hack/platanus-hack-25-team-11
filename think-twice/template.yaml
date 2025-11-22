@@ -17,7 +17,7 @@ Resources:
   ThinkTwiceFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: dist/
+      CodeUri: ./
       Handler: index.handler
       Events:
         ApiEvent:
@@ -42,7 +42,7 @@ Resources:
 Outputs:
   ThinkTwiceApi:
     Description: "API Gateway endpoint URL"
-    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/hello/"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/consult"
   ThinkTwiceFunction:
     Description: "Lambda Function ARN"
     Value: !GetAtt ThinkTwiceFunction.Arn
