@@ -52,9 +52,32 @@ class CheckoutBlocker {
     return true;
   }
 
-  showAlert() {
+  async showAlert() {
     if (!this.canShowAlert()) {
       return true;
+    }
+
+    // Make API request
+    try {
+      const mainHtml = this.getMainContent();
+      const payload = {
+        userContext: "soy luis gano 2000000Clp al mes tengo esposa e hijos",
+        cartHTML: mainHtml
+      };
+
+      console.log('[CheckoutBlocker] Making API request...');
+      const response = await fetch('https://m9mjvirnlk.execute-api.us-east-1.amazonaws.com/Prod/consult', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await response.json();
+      console.log('[CheckoutBlocker] API response:', data);
+    } catch (error) {
+      console.error('[CheckoutBlocker] API request failed:', error);
     }
 
     const confirmed = confirm('¿Estás seguro que quieres gastar tu dinero en estupideces?');
@@ -95,7 +118,7 @@ class CheckoutBlocker {
   setupClickInterception() {
     console.log('[CheckoutBlocker] Setting up click interception');
 
-    document.addEventListener('click', (e) => {
+    document.addEventListener('click', async (e) => {
       // Only intercept on cart pages
       if (!this.isCartPage()) return;
 
@@ -115,7 +138,7 @@ class CheckoutBlocker {
             e.stopPropagation();
             e.stopImmediatePropagation();
 
-            const confirmed = this.showAlert();
+            const confirmed = await this.showAlert();
             if (confirmed) {
               console.log('[CheckoutBlocker] User confirmed, navigating to:', target.href);
               window.location.href = target.href;
@@ -140,7 +163,8 @@ class CheckoutBlocker {
             e.stopPropagation();
             e.stopImmediatePropagation();
 
-            if (!this.showAlert()) {
+            const confirmed = await this.showAlert();
+            if (!confirmed) {
               console.log('[CheckoutBlocker] User cancelled');
               return false;
             }
