@@ -70,7 +70,7 @@ jobs:
         run: |
           API_URL=$(aws cloudformation describe-stacks \
             --stack-name think-twice-lambda \
-            --query 'Stacks[0].Outputs[?OutputKey==`ThinkTwiceApi`].OutputValue' \
+            --query 'Stacks[0].Outputs[?OutputKey==`ThinkTwiceApiUrl`].OutputValue' \
             --output text \
             --region us-east-1)
           echo "API_URL=$API_URL" >> $GITHUB_ENV
