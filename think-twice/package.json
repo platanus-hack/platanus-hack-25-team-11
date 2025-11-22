@@ -1,0 +1,26 @@
+{
+  "name": "think-twice-lambda",
+  "version": "1.0.0",
+  "description": "TypeScript Lambda function with SAM",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc -w",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "deploy": "sam build && sam deploy",
+    "local": "sam build && sam local start-api"
+  },
+  "keywords": [
+    "lambda",
+    "typescript",
+    "sam",
+    "aws"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/aws-lambda": "^8.10.145",
+    "@types/node": "^20.10.0",
+    "typescript": "^5.3.3"
+  }
+}
