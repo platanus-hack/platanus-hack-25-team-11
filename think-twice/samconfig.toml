@@ -1,0 +1,10 @@
+version = 0.1
+[default]
+[default.deploy]
+[default.deploy.parameters]
+stack_name = "think-twice-lambda"
+s3_bucket = "aws-sam-cli-managed-default-samclisourcebucket-XXXXX"
+s3_prefix = "think-twice-lambda"
+region = "us-east-1"
+capabilities = "CAPABILITY_IAM"
+confirm_changeset = true
