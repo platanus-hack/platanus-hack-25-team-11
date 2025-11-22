@@ -4,14 +4,23 @@ on:
   push:
     branches:
       - main
+    paths:
+      - "think-twice/**"
+      - ".github/workflows/deploy.yml"
   pull_request:
     branches:
       - main
+    paths:
+      - "think-twice/**"
+      - ".github/workflows/deploy.yml"
   workflow_dispatch:
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./think-twice
     permissions:
       id-token: write
       contents: read
@@ -24,9 +33,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "20"
+          cache: "npm"
+          cache-dependency-path: "think-twice/package-lock.json"
 
       - name: Install dependencies
-        working-directory: ./think-twice
         run: npm ci
 
       - name: Setup Python
@@ -47,11 +57,9 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
       - name: SAM Build
-        working-directory: ./think-twice
         run: sam build
 
       - name: SAM Deploy
-        working-directory: ./think-twice
         run: |
           sam deploy \
             --stack-name think-twice-lambda \
@@ -61,6 +69,7 @@ jobs:
             --no-fail-on-empty-changeset
 
       - name: Get API URL
+        working-directory: ./
         run: |
           API_URL=$(aws cloudformation describe-stacks \
             --stack-name think-twice-lambda \
@@ -71,6 +80,7 @@ jobs:
           echo "::notice::API Endpoint: $API_URL"
 
       - name: Test endpoint
+        working-directory: ./
         run: |
           if [ ! -z "$API_URL" ]; then
             curl -X GET "$API_URL"
