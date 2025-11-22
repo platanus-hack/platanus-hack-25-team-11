@@ -131,7 +131,7 @@ export const handler = async (
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
+        'content-type': 'application/json',
         'x-api-key': apiKey,
         'anthropic-version': '2023-06-01',
       },
@@ -139,10 +139,12 @@ export const handler = async (
         model: 'claude-sonnet-4-20250514',
         max_tokens: 500,
         temperature: 0.8,
-        messages: [{
-          role: 'user',
-          content: PROMPT_TEMPLATE(cartHTML, userContext || ''),
-        }],
+        messages: [
+          {
+            role: 'user',
+            content: PROMPT_TEMPLATE(cartHTML, userContext || ''),
+          }
+        ],
       }),
     });
 
