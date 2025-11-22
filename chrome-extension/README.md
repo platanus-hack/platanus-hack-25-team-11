@@ -1,23 +1,22 @@
-# Checkout Detector Chrome Extension
+# Think twice - Chrome Extension
 
-A Chrome extension that automatically detects checkout pages on e-commerce websites by analyzing page content, URLs, form fields, and other indicators.
+A Chrome extension that helps you think twice before making online purchases by providing personalized prompts based on your cart contents and personal context.
 
 ## Features
 
-- **Automatic Detection**: Continuously monitors pages to identify checkout processes
-- **Confidence Scoring**: Provides a confidence percentage based on multiple detection indicators
-- **Real-time Analysis**: Uses MutationObserver to detect dynamically loaded checkout forms
-- **Visual Feedback**: Badge indicator on extension icon when checkout is detected
-- **Detailed Reporting**: Shows which indicators triggered the detection
+- **Smart Interception**: Blocks navigation from cart to checkout pages
+- **AI-Powered Questions**: Uses Claude AI to generate personalized questions based on your cart and context
+- **User Context**: Configure your personal financial situation, goals, and priorities
+- **Cooldown Period**: Shows alerts at most once every 5 minutes to avoid spam
+- **Persistent Settings**: Your context is saved across browser sessions
 
-## Detection Methods
+## How It Works
 
-The extension uses multiple heuristics to identify checkout pages:
-
-1. **URL Patterns**: Checks for keywords like "checkout", "cart", "payment", "billing"
-2. **Form Fields**: Detects credit card, CVV, billing address inputs
-3. **Page Content**: Searches for text like "Place Order", "Complete Purchase"
-4. **HTML Selectors**: Identifies common e-commerce payment form elements
+1. Configure your personal context in the extension popup (income, family situation, financial goals, etc.)
+2. When you try to proceed from cart to checkout, the extension intercepts the action
+3. Sends your cart contents and personal context to an AI API
+4. Shows you a personalized question to make you think twice about your purchase
+5. You can then confirm or cancel the checkout
 
 ## Installation
 
@@ -31,121 +30,112 @@ The extension uses multiple heuristics to identify checkout pages:
 
 ### Icon Setup
 
-Before loading the extension, you need to add icon files to the `icons/` directory:
+Icons should be placed in the `icons/` directory:
 - `icon16.png` (16x16px)
 - `icon48.png` (48x48px)
 - `icon128.png` (128x128px)
 
-You can create simple placeholder icons or use proper ones for your project.
-
 ## Usage
 
-1. Navigate to any website
-2. Click the extension icon in your Chrome toolbar
-3. The popup will show:
-   - Detection status (Checkout Detected / No Checkout Detected)
-   - Confidence percentage
-   - Breakdown of detection indicators
-   - Current page URL
+### Setting Your Context
 
-4. Click "Refresh Analysis" to re-analyze the current page
+1. Click the extension icon in Chrome toolbar
+2. Enter your personal context (example: "Soy Luis, gano 2000000 CLP al mes, tengo esposa e hijos")
+3. Click "Save Context"
 
-### Badge Indicator
+### Shopping Experience
 
-When a checkout page is detected with high confidence, the extension icon will display a red "!" badge.
+1. Browse any e-commerce site and add items to your cart
+2. When you click "Checkout" or similar buttons, the extension will:
+   - Intercept the click
+   - Send your cart HTML and context to the AI
+   - Show a personalized confirmation dialog
+3. Decide whether to proceed or cancel
 
-## Technical Details
+### Debugging
 
-### Files Structure
+To clear the 5-minute cooldown for testing:
+```javascript
+localStorage.removeItem("checkoutBlockerLastAlert")
+```
+
+## Files Structure
 
 ```
 chrome-extension/
 ├── manifest.json         # Extension configuration
-├── content.js           # Content script that analyzes pages
-├── background.js        # Service worker for handling events
-├── popup.html           # Popup UI
-├── popup.js             # Popup logic
+├── content.js           # Main blocker logic and API integration
+├── background.js        # Background service worker
+├── popup.html           # Settings popup UI
+├── popup.js             # Popup logic for saving context
 ├── icons/               # Extension icons
 └── README.md            # This file
 ```
 
+## Technical Details
+
 ### Content Script
 
-The content script (`content.js`) runs on every page and performs detection using the `CheckoutDetector` class. It:
-- Analyzes URL, form fields, text content, and HTML elements
-- Calculates a confidence score (0-100)
-- Sends results to the background service worker
-- Monitors DOM changes for dynamic content
+The content script (`content.js`):
+- Detects cart pages using URL patterns
+- Intercepts clicks on checkout links/buttons
+- Sends cart HTML to AI API with user context
+- Shows personalized confirmation dialogs
+- Manages 5-minute cooldown using localStorage
 
-### Background Service Worker
+### API Integration
 
-The background script (`background.js`):
-- Receives detection results from content scripts
-- Updates extension badge and shows notifications
-- Stores checkout data in chrome.storage
-- Manages state across tabs
+The extension makes POST requests to:
+```
+https://m9mjvirnlk.execute-api.us-east-1.amazonaws.com/Prod/consult
+```
 
-### Popup
+Payload:
+```json
+{
+  "userContext": "Your saved context",
+  "cartHTML": "HTML content from main tag"
+}
+```
 
-The popup interface displays:
-- Real-time checkout detection status
-- Visual confidence indicator
-- Breakdown of detection signals
-- Manual refresh capability
+Response:
+```json
+{
+  "question": "Personalized question from AI",
+  "tokensUsed": 123
+}
+```
 
-## Development
+### Detection Patterns
 
-### Testing
+Cart pages detected by URL patterns:
+- `/cart/i`, `/basket/i`, `/bag/i`
+- `/carrito/i`, `/cesta/i` (Spanish)
 
-To test the extension:
-
-1. Load the extension in Chrome
-2. Visit known checkout pages (e.g., Amazon checkout, Shopify stores)
-3. Open the extension popup to see detection results
-4. Check the browser console for debug logs
-
-### Debugging
-
-- Content script logs: Open DevTools on the page (F12)
-- Background script logs: Go to `chrome://extensions/` → Click "Service Worker" link
-- Popup logs: Right-click popup → "Inspect"
-
-## Customization
-
-### Adjusting Detection Sensitivity
-
-Edit the scoring values in `content.js`:
-- URL patterns: Currently 15 points per match (max 40)
-- Form fields: 10 points per field (max 40)
-- Text content: 5 points per match (max 30)
-- Selectors: 8 points per element (max 40)
-
-The threshold for `isCheckout` is currently 30% confidence.
-
-### Adding New Detection Patterns
-
-In `content.js`, modify the `checkoutIndicators` object to add:
-- New URL patterns
-- Additional form field names
-- More text patterns
-- Custom CSS selectors
+Checkout links detected by URL patterns:
+- `/checkout/i`, `/payment/i`, `/billing/i`, `/pay/i`
+- `/paga/i`, `/pagar/i`, `/pago/i`, `/comprar/i` (Spanish)
 
 ## Permissions
 
 The extension requires:
 - `activeTab`: To analyze the current page
-- `storage`: To persist detection results
-- `notifications`: To alert users of high-confidence detections
+- `storage`: To persist user context
 - `host_permissions`: To run on all websites
 
-## Future Enhancements
+## Development
 
-Potential improvements:
-- Machine learning-based detection
-- Platform-specific detection (Shopify, WooCommerce, etc.)
-- Historical tracking of visited checkouts
-- Integration with external APIs
-- Custom detection rules
+### Testing
+
+1. Load extension in Chrome
+2. Set your context in the popup
+3. Visit any e-commerce site (e.g., Mercado Libre, Amazon)
+4. Add items to cart and try to checkout
+5. Check browser console for debug logs
+
+### Console Logs
+
+All logs are prefixed with `[Think twice]` for easy filtering.
 
 ## License
 

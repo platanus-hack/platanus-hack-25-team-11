@@ -45,5 +45,5 @@ For a checkout detector extension, consider:
 
 Once icons are in place:
 1. Go to `chrome://extensions/`
-2. Click the refresh icon on the Checkout Detector extension card
+2. Click the refresh icon on the Think twice extension card
 3. The icons should now appear properly

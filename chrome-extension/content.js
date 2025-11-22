@@ -1,4 +1,4 @@
-// Go To Checkout Blocker content script
+// Think twice content script
 
 class CheckoutBlocker {
   constructor() {
@@ -34,22 +34,30 @@ class CheckoutBlocker {
     const saved = localStorage.getItem('checkoutBlockerLastAlert');
     if (saved) {
       this.lastAlertTime = parseInt(saved, 10);
-      console.log('[CheckoutBlocker] Loaded last alert time:', new Date(this.lastAlertTime));
+      console.log('[Think twice] Loaded last alert time:', new Date(this.lastAlertTime));
     }
   }
 
   saveLastAlertTime() {
     localStorage.setItem('checkoutBlockerLastAlert', this.lastAlertTime.toString());
-    console.log('[CheckoutBlocker] Saved last alert time:', new Date(this.lastAlertTime));
+    console.log('[Think twice] Saved last alert time:', new Date(this.lastAlertTime));
   }
 
   canShowAlert() {
     const now = Date.now();
     if (now - this.lastAlertTime < this.ALERT_COOLDOWN) {
-      console.log('[CheckoutBlocker] Alert cooldown active, skipping');
+      console.log('[Think twice] Alert cooldown active, skipping');
       return false;
     }
     return true;
+  }
+
+  async getUserContext() {
+    return new Promise((resolve) => {
+      chrome.storage.local.get(['userContext'], (result) => {
+        resolve(result.userContext || '');
+      });
+    });
   }
 
   async showAlert() {
@@ -57,15 +65,19 @@ class CheckoutBlocker {
       return true;
     }
 
+    // Get user context from storage
+    const userContext = await this.getUserContext();
+
     // Make API request
     try {
       const mainHtml = this.getMainContent();
       const payload = {
-        userContext: "soy luis gano 2000000Clp al mes tengo esposa e hijos",
+        userContext: userContext,
         cartHTML: mainHtml
       };
 
-      console.log('[CheckoutBlocker] Making API request...');
+      console.log('[Think twice] Making API request...');
+      console.log('[Think twice] User context:', userContext);
       const response = await fetch('https://m9mjvirnlk.execute-api.us-east-1.amazonaws.com/Prod/consult', {
         method: 'POST',
         headers: {
@@ -75,16 +87,26 @@ class CheckoutBlocker {
       });
 
       const data = await response.json();
-      console.log('[CheckoutBlocker] API response:', data);
-    } catch (error) {
-      console.error('[CheckoutBlocker] API request failed:', error);
-    }
+      console.log('[Think twice] API response:', data);
 
-    const confirmed = confirm('¿Estás seguro que quieres gastar tu dinero en estupideces?');
-    this.lastAlertTime = Date.now();
-    this.saveLastAlertTime();
-    console.log('[CheckoutBlocker] Alert shown at', new Date(this.lastAlertTime));
-    return confirmed;
+      // Use the question from API if available, otherwise use default
+      const alertMessage = data.question || '¿Estás seguro que quieres gastar tu dinero en estupideces?';
+      const confirmed = confirm(alertMessage);
+
+      this.lastAlertTime = Date.now();
+      this.saveLastAlertTime();
+      console.log('[Think twice] Alert shown at', new Date(this.lastAlertTime));
+      return confirmed;
+    } catch (error) {
+      console.error('[Think twice] API request failed:', error);
+
+      // Fallback to default message if API fails
+      const confirmed = confirm('¿Estás seguro que quieres gastar tu dinero en estupideces?');
+      this.lastAlertTime = Date.now();
+      this.saveLastAlertTime();
+      console.log('[Think twice] Alert shown at', new Date(this.lastAlertTime));
+      return confirmed;
+    }
   }
 
   isCartPage() {
@@ -105,18 +127,20 @@ class CheckoutBlocker {
     }
 
     let html = mainTag.innerHTML;
-    // Remove src attributes, style and script tags
+    // Remove src attributes, class attributes, style, script and svg tags
     html = html
       .replace(/\ssrc="[^"]*"/gi, '')
+      .replace(/\sclass="[^"]*"/gi, '')
       .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
-      .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '');
+      .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+      .replace(/<svg[^>]*>[\s\S]*?<\/svg>/gi, '');
 
     return html;
   }
 
   // Intercept clicks on checkout links/buttons from cart pages
   setupClickInterception() {
-    console.log('[CheckoutBlocker] Setting up click interception');
+    console.log('[Think twice] Setting up click interception');
 
     document.addEventListener('click', async (e) => {
       // Only intercept on cart pages
@@ -130,9 +154,9 @@ class CheckoutBlocker {
           if (this.isCheckoutLink(target.href)) {
             // Log main tag content
             const mainHtml = this.getMainContent();
-            console.log('[CheckoutBlocker] Intercepted checkout link');
-            console.log('[CheckoutBlocker] Main tag content:', mainHtml);
-            console.log('[CheckoutBlocker] Link href:', target.href);
+            console.log('[Think twice] Intercepted checkout link');
+            console.log('[Think twice] Main tag content:', mainHtml);
+            console.log('[Think twice] Link href:', target.href);
 
             e.preventDefault();
             e.stopPropagation();
@@ -140,10 +164,10 @@ class CheckoutBlocker {
 
             const confirmed = await this.showAlert();
             if (confirmed) {
-              console.log('[CheckoutBlocker] User confirmed, navigating to:', target.href);
+              console.log('[Think twice] User confirmed, navigating to:', target.href);
               window.location.href = target.href;
             } else {
-              console.log('[CheckoutBlocker] User cancelled');
+              console.log('[Think twice] User cancelled');
             }
             return false;
           }
@@ -155,9 +179,9 @@ class CheckoutBlocker {
           if (this.checkoutPatterns.some(pattern => pattern.test(buttonText))) {
             // Log main tag content
             const mainHtml = this.getMainContent();
-            console.log('[CheckoutBlocker] Intercepted checkout button');
-            console.log('[CheckoutBlocker] Main tag content:', mainHtml);
-            console.log('[CheckoutBlocker] Button text:', buttonText);
+            console.log('[Think twice] Intercepted checkout button');
+            console.log('[Think twice] Main tag content:', mainHtml);
+            console.log('[Think twice] Button text:', buttonText);
 
             e.preventDefault();
             e.stopPropagation();
@@ -165,11 +189,11 @@ class CheckoutBlocker {
 
             const confirmed = await this.showAlert();
             if (!confirmed) {
-              console.log('[CheckoutBlocker] User cancelled');
+              console.log('[Think twice] User cancelled');
               return false;
             }
             // If confirmed, let the button's original action proceed
-            console.log('[CheckoutBlocker] User confirmed button click');
+            console.log('[Think twice] User confirmed button click');
           }
         }
 
@@ -177,13 +201,13 @@ class CheckoutBlocker {
       }
     }, true); // Use capture phase
 
-    console.log('[CheckoutBlocker] Click interception ready');
+    console.log('[Think twice] Click interception ready');
   }
 
 
 
   init() {
-    console.log('[CheckoutBlocker] Initializing...');
+    console.log('[Think twice] Initializing...');
 
     // Set up click interception immediately
     if (document.body) {
@@ -194,7 +218,7 @@ class CheckoutBlocker {
       });
     }
 
-    console.log('[CheckoutBlocker] Initialized');
+    console.log('[Think twice] Initialized');
   }
 }
 
@@ -203,4 +227,4 @@ const blocker = new CheckoutBlocker();
 blocker.init();
 
 // Log helper message
-console.log('[CheckoutBlocker] To clear cooldown, run: localStorage.removeItem("checkoutBlockerLastAlert")');
+console.log('[Think twice] To clear cooldown, run: localStorage.removeItem("checkoutBlockerLastAlert")');

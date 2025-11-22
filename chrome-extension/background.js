@@ -1,4 +1,4 @@
-// Background service worker for Go To Checkout Blocker
+// Background service worker for Think twice
 
 let checkoutStatus = new Map();
 
@@ -14,7 +14,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 function handleCheckoutDetection(data, tab) {
   if (!tab || !tab.id) return;
 
-  console.log('[Background] Checkout detection for tab', tab.id, data);
+  console.log('[Think twice] Checkout detection for tab', tab.id, data);
 
   // Store checkout status
   checkoutStatus.set(tab.id, {
@@ -34,7 +34,7 @@ function handleCheckoutDetection(data, tab) {
 function handleCheckoutData(data, tab) {
   if (!tab || !tab.id) return;
 
-  console.log('[Background] Checkout data for tab', tab.id, data);
+  console.log('[Think twice] Checkout data for tab', tab.id, data);
 
   // Store detailed checkout data
   chrome.storage.local.set({
@@ -68,4 +68,4 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 });
 
-console.log('[Background] Go To Checkout Blocker background script loaded');
+console.log('[Background] Think twice background script loaded');
