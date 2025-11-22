@@ -6,9 +6,8 @@
   "scripts": {
     "build": "tsc",
     "watch": "tsc -w",
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "deploy": "sam build && sam deploy",
-    "local": "sam build && sam local start-api"
+    "test": "node test-endpoint.js",
+    "test:local": "node test-endpoint.js http://localhost:3000/consult"
   },
   "keywords": [
     "lambda",

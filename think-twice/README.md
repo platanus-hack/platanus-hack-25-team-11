@@ -1,22 +1,26 @@
 # Think Twice - AWS Lambda with TypeScript & SAM
 
-A serverless AWS Lambda function built with TypeScript, AWS SAM, and automated deployment via GitHub Actions.
+API serverless que genera preguntas reflexivas sobre compras online usando Claude AI.
 
 ## 🚀 Features
 
-- **TypeScript Lambda Function** with full type safety
-- **AWS SAM** for infrastructure as code
+- **TypeScript Lambda Function** con tipos completos
+- **AWS SAM** para infraestructura como código
 - **API Gateway** REST endpoint
-- **GitHub Actions** for CI/CD automation
-- **CORS** enabled for web access
-- **Local development** support
+- **Claude Sonnet 4** para generación de preguntas inteligentes
+- **Análisis de contexto financiero** del usuario
+- **Cálculo de "horas de vida"** basado en ingreso
+- **GitHub Actions** para CI/CD automático
+- **CORS** habilitado para acceso web
+- **Soporte para desarrollo local**
 
 ## 📋 Prerequisites
 
-- Node.js 20.x or later
-- AWS CLI configured
-- AWS SAM CLI installed
-- An AWS account with appropriate permissions
+- Node.js 20.x o superior
+- AWS CLI configurado
+- AWS SAM CLI instalado
+- Cuenta de AWS con permisos apropiados
+- **API Key de Anthropic** ([obtener aquí](https://console.anthropic.com/))
 
 ## 🛠️ Local Development
 
@@ -32,22 +36,39 @@ npm install
 npm run build
 ```
 
-### Test Locally
+### Configurar API Key de Anthropic
 
-```bash
-# Start local API
-npm run local
+Para desarrollo local, crea un archivo `env.json`:
 
-# In another terminal, test the endpoint
-curl http://localhost:3000/hello
+```json
+{
+  "ThinkTwiceFunction": {
+    "ANTHROPIC_API_KEY": "tu-api-key-aqui"
+  }
+}
 ```
 
-### Deploy Manually
+⚠️ **IMPORTANTE**: Nunca commitees este archivo. Ya está en `.gitignore`.
+
+### Test Localmente
 
 ```bash
-# Build and deploy
+# Iniciar API local
 sam build
-sam deploy --guided
+sam local start-api --env-vars env.json
+
+# En otra terminal, probar el endpoint
+curl -X POST http://localhost:3000/consult \
+  -H "Content-Type: application/json" \
+  -d @test-event.json
+```
+
+### Deploy Manual
+
+```bash
+# Build y deploy (primera vez)
+sam build
+sam deploy --guided --parameter-overrides AnthropicApiKey=tu-api-key-aqui
 ```
 
 ## 🔧 GitHub Actions Setup
