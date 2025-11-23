@@ -29,7 +29,7 @@
   ],
   "web_accessible_resources": [
     {
-      "resources": ["videos/pausito.mp4"],
+      "resources": ["videos/pausito.mp4", "videos/pausito.webm"],
       "matches": ["<all_urls>"]
     }
   ],
