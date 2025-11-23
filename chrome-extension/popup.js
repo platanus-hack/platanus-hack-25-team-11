@@ -5,10 +5,17 @@ document.addEventListener('DOMContentLoaded', () => {
   const saveBtn = document.getElementById('saveBtn');
   const statusMessage = document.getElementById('statusMessage');
 
-  // Load saved context on popup open
-  chrome.storage.local.get(['userContext'], (result) => {
+  const whitelistTextarea = document.getElementById('whitelist');
+  const saveWhitelistBtn = document.getElementById('saveWhitelistBtn');
+  const whitelistStatusMessage = document.getElementById('whitelistStatusMessage');
+
+  // Load saved context and whitelist on popup open
+  chrome.storage.local.get(['userContext', 'whitelist'], (result) => {
     if (result.userContext) {
       textarea.value = result.userContext;
+    }
+    if (result.whitelist) {
+      whitelistTextarea.value = result.whitelist.join('\n');
     }
   });
 
@@ -17,12 +24,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const context = textarea.value.trim();
 
     if (!context) {
-      showMessage('Please enter your context', 'error');
+      showMessage(statusMessage, 'Please enter your context', 'error');
       return;
     }
 
     chrome.storage.local.set({ userContext: context }, () => {
-      showMessage('Context saved successfully!', 'success');
+      showMessage(statusMessage, 'Context saved successfully!', 'success');
 
       // Clear message after 2 seconds
       setTimeout(() => {
@@ -32,8 +39,27 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  function showMessage(message, type) {
-    statusMessage.textContent = message;
-    statusMessage.className = `status-message ${type}`;
+  // Save whitelist when button is clicked
+  saveWhitelistBtn.addEventListener('click', () => {
+    const whitelistText = whitelistTextarea.value.trim();
+    const whitelist = whitelistText
+      .split('\n')
+      .map(domain => domain.trim())
+      .filter(domain => domain.length > 0);
+
+    chrome.storage.local.set({ whitelist: whitelist }, () => {
+      showMessage(whitelistStatusMessage, 'Whitelist saved successfully!', 'success');
+
+      // Clear message after 2 seconds
+      setTimeout(() => {
+        whitelistStatusMessage.className = 'status-message';
+        whitelistStatusMessage.textContent = '';
+      }, 2000);
+    });
+  });
+
+  function showMessage(element, message, type) {
+    element.textContent = message;
+    element.className = `status-message ${type}`;
   }
 });

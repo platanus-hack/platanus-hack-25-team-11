@@ -60,6 +60,25 @@ class CheckoutBlocker {
     });
   }
 
+  async getWhitelist() {
+    return new Promise((resolve) => {
+      chrome.storage.local.get(['whitelist'], (result) => {
+        resolve(result.whitelist || []);
+      });
+    });
+  }
+
+  async isWhitelisted() {
+    const whitelist = await this.getWhitelist();
+    const currentHostname = window.location.hostname;
+
+    return whitelist.some(domain => {
+      // Check if current hostname ends with the whitelisted domain
+      // This allows subdomains (e.g., www.amazon.com matches amazon.com)
+      return currentHostname === domain || currentHostname.endsWith('.' + domain);
+    });
+  }
+
   async showAlert() {
     if (!this.canShowAlert()) {
       return true;
@@ -143,6 +162,12 @@ class CheckoutBlocker {
     console.log('[Think twice] Setting up click interception');
 
     document.addEventListener('click', async (e) => {
+      // Check if site is whitelisted
+      if (await this.isWhitelisted()) {
+        console.log('[Think twice] Site is whitelisted, skipping interception');
+        return;
+      }
+
       // Only intercept on cart pages
       if (!this.isCartPage()) return;
 
