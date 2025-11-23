@@ -27,7 +27,10 @@ class CheckoutBlocker {
 
     this.lastAlertTime = 0;
     this.ALERT_COOLDOWN = 30 * 1000; // 30 seconds in milliseconds
+    this.isEnabled = true; // Default to enabled
     this.loadLastAlertTime();
+    this.loadEnabledState();
+    this.setupStorageListener();
   }
 
   async loadLastAlertTime() {
@@ -41,6 +44,21 @@ class CheckoutBlocker {
   async saveLastAlertTime() {
     await chrome.storage.local.set({ checkoutBlockerLastAlert: this.lastAlertTime.toString() });
     console.log('[Think twice] Saved last alert time:', new Date(this.lastAlertTime));
+  }
+
+  async loadEnabledState() {
+    const result = await chrome.storage.local.get('thinkTwiceEnabled');
+    this.isEnabled = result.thinkTwiceEnabled !== undefined ? result.thinkTwiceEnabled : true;
+    console.log('[Think twice] Extension enabled:', this.isEnabled);
+  }
+
+  setupStorageListener() {
+    chrome.storage.onChanged.addListener((changes, area) => {
+      if (area === 'local' && changes.thinkTwiceEnabled) {
+        this.isEnabled = changes.thinkTwiceEnabled.newValue !== undefined ? changes.thinkTwiceEnabled.newValue : true;
+        console.log('[Think twice] Extension enabled state changed to:', this.isEnabled);
+      }
+    });
   }
 
   canShowAlert() {
@@ -480,6 +498,12 @@ class CheckoutBlocker {
 
     document.addEventListener('click', (e) => {
       try {
+        // Check if extension is enabled
+        if (!this.isEnabled) {
+          console.log('[Think twice] Extension is disabled');
+          return;
+        }
+
         // Check if this is a confirmed click that should bypass interception
         let checkTarget = e.target;
         while (checkTarget && checkTarget !== document.body) {
@@ -508,10 +532,7 @@ class CheckoutBlocker {
               e.stopPropagation();
               e.stopImmediatePropagation();
 
-              // Log body content
-              const mainHtml = this.getMainContent();
               console.log('[Think twice] Intercepted checkout link');
-              console.log('[Think twice] Body content:', mainHtml);
               console.log('[Think twice] Link href:', target.href);
 
               // Handle async logic separately
@@ -530,10 +551,7 @@ class CheckoutBlocker {
               e.stopPropagation();
               e.stopImmediatePropagation();
 
-              // Log body content
-              const mainHtml = this.getMainContent();
               console.log('[Think twice] Intercepted checkout button');
-              console.log('[Think twice] Body content:', mainHtml);
               console.log('[Think twice] Button text:', buttonText);
 
               // Handle async logic separately

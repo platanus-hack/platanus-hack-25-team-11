@@ -9,9 +9,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   const saveWhitelistBtn = document.getElementById('saveWhitelistBtn');
   const whitelistStatusMessage = document.getElementById('whitelistStatusMessage');
 
-  // Load saved context and whitelist on popup open
+  const extensionToggle = document.getElementById('extensionToggle');
+  const toggleSwitch = extensionToggle.closest('.toggle-switch');
+
+  // Load saved context, whitelist, and enabled state on popup open
   try {
-    const result = await chrome.storage.local.get(['thinkTwiceUserContext', 'thinkTwiceWhitelist']);
+    const result = await chrome.storage.local.get(['thinkTwiceUserContext', 'thinkTwiceWhitelist', 'thinkTwiceEnabled']);
 
     if (result.thinkTwiceUserContext) {
       textarea.value = result.thinkTwiceUserContext;
@@ -21,9 +24,29 @@ document.addEventListener('DOMContentLoaded', async () => {
       const whitelist = JSON.parse(result.thinkTwiceWhitelist);
       whitelistTextarea.value = whitelist.join('\n');
     }
+
+    // Default to enabled if not set
+    const isEnabled = result.thinkTwiceEnabled !== undefined ? result.thinkTwiceEnabled : true;
+    extensionToggle.checked = isEnabled;
+
+    // Enable animations after initial state is set
+    requestAnimationFrame(() => {
+      toggleSwitch.classList.add('animated');
+    });
   } catch (e) {
     console.error('[Think twice] Error loading saved data:', e);
   }
+
+  // Handle toggle change
+  extensionToggle.addEventListener('change', async () => {
+    try {
+      const isEnabled = extensionToggle.checked;
+      await chrome.storage.local.set({ thinkTwiceEnabled: isEnabled });
+      console.log('[Think twice] Extension', isEnabled ? 'enabled' : 'disabled');
+    } catch (e) {
+      console.error('[Think twice] Error saving enabled state:', e);
+    }
+  });
 
   // Save context when button is clicked
   saveBtn.addEventListener('click', async () => {
