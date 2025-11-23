@@ -275,7 +275,7 @@ class CheckoutBlocker {
     const modal = document.createElement('div');
     modal.id = 'think-twice-modal';
     modal.style.cssText = `
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: linear-gradient(135deg, rgb(70, 130, 190) 0%, rgb(130, 170, 215) 100%);
       padding: 2.5rem;
       border-radius: 20px;
       max-width: 500px;
@@ -309,6 +309,30 @@ class CheckoutBlocker {
     cancelBtn.textContent = 'Cancelar';
     cancelBtn.style.cssText = `
       padding: 1rem 2rem;
+      border: none;
+      background: white;
+      color: rgb(70, 130, 190);
+      border-radius: 12px;
+      font-size: 1.1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      min-width: 150px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    `;
+    cancelBtn.onmouseover = () => {
+      cancelBtn.style.transform = 'translateY(-2px)';
+      cancelBtn.style.boxShadow = '0 6px 16px rgba(0, 0, 0, 0.3)';
+    };
+    cancelBtn.onmouseout = () => {
+      cancelBtn.style.transform = 'translateY(0)';
+      cancelBtn.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.2)';
+    };
+
+    const confirmBtn = document.createElement('button');
+    confirmBtn.textContent = 'Continuar';
+    confirmBtn.style.cssText = `
+      padding: 1rem 2rem;
       border: 2px solid white;
       background: transparent;
       color: white;
@@ -319,37 +343,13 @@ class CheckoutBlocker {
       transition: all 0.3s ease;
       min-width: 150px;
     `;
-    cancelBtn.onmouseover = () => {
-      cancelBtn.style.background = 'rgba(255, 255, 255, 0.1)';
-      cancelBtn.style.transform = 'translateY(-2px)';
-    };
-    cancelBtn.onmouseout = () => {
-      cancelBtn.style.background = 'transparent';
-      cancelBtn.style.transform = 'translateY(0)';
-    };
-
-    const confirmBtn = document.createElement('button');
-    confirmBtn.textContent = 'Continuar';
-    confirmBtn.style.cssText = `
-      padding: 1rem 2rem;
-      border: none;
-      background: white;
-      color: #667eea;
-      border-radius: 12px;
-      font-size: 1.1rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      min-width: 150px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-    `;
     confirmBtn.onmouseover = () => {
+      confirmBtn.style.background = 'rgba(255, 255, 255, 0.1)';
       confirmBtn.style.transform = 'translateY(-2px)';
-      confirmBtn.style.boxShadow = '0 6px 16px rgba(0, 0, 0, 0.3)';
     };
     confirmBtn.onmouseout = () => {
+      confirmBtn.style.background = 'transparent';
       confirmBtn.style.transform = 'translateY(0)';
-      confirmBtn.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.2)';
     };
 
     buttonContainer.appendChild(cancelBtn);
@@ -427,7 +427,7 @@ class CheckoutBlocker {
       console.log('[Think twice] API response:', data);
 
       // Use the question from API if available, otherwise use default
-      const alertMessage = data.question || '¿Estás seguro que quieres gastar tu dinero en estupideces?';
+      const alertMessage = data.question || '¿Estás seguro que quieres malgastar tu dinero en esto?';
 
       // Wait until exactly 5 seconds have passed since video started
       const elapsedTime = Date.now() - videoStartTime;
@@ -456,7 +456,7 @@ class CheckoutBlocker {
       }
 
       // Fallback to default message if API fails
-      const confirmed = await this.showCustomConfirm('¿Estás seguro que quieres gastar tu dinero en estupideces?');
+      const confirmed = await this.showCustomConfirm('¿Estás seguro que quieres malgastar tu dinero en esto?');
 
       // Remove video overlay after user responds
       this.removeVideoOverlay();
