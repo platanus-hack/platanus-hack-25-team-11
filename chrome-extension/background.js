@@ -23,29 +23,17 @@ function handleCheckoutDetection(data, tab) {
     tabUrl: tab.url,
     tabTitle: tab.title
   });
-
-
-  // Store in chrome.storage for persistence
-  chrome.storage.local.set({
-    [`checkout_${tab.id}`]: data
-  });
 }
 
 function handleCheckoutData(data, tab) {
   if (!tab || !tab.id) return;
 
   console.log('[Think twice] Checkout data for tab', tab.id, data);
-
-  // Store detailed checkout data
-  chrome.storage.local.set({
-    [`checkout_data_${tab.id}`]: data
-  });
 }
 
 // Clean up storage when tabs are closed
 chrome.tabs.onRemoved.addListener((tabId) => {
   checkoutStatus.delete(tabId);
-  chrome.storage.local.remove([`checkout_${tabId}`, `checkout_data_${tabId}`]);
 });
 
 // Handle tab updates

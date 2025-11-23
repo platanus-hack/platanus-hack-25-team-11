@@ -52,31 +52,81 @@ class CheckoutBlocker {
     return true;
   }
 
-  async getUserContext() {
-    return new Promise((resolve) => {
-      chrome.storage.local.get(['userContext'], (result) => {
-        resolve(result.userContext || '');
-      });
-    });
+  getUserContext() {
+    try {
+      return localStorage.getItem('thinkTwiceUserContext') || '';
+    } catch (e) {
+      console.error('[Think twice] Error getting user context:', e);
+      return '';
+    }
   }
 
-  async getWhitelist() {
-    return new Promise((resolve) => {
-      chrome.storage.local.get(['whitelist'], (result) => {
-        resolve(result.whitelist || []);
-      });
-    });
+  getWhitelist() {
+    try {
+      const saved = localStorage.getItem('thinkTwiceWhitelist');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      console.error('[Think twice] Error getting whitelist:', e);
+      return [];
+    }
   }
 
-  async isWhitelisted() {
-    const whitelist = await this.getWhitelist();
-    const currentHostname = window.location.hostname;
+  isWhitelisted() {
+    try {
+      const whitelist = this.getWhitelist();
+      const currentHostname = window.location.hostname;
 
-    return whitelist.some(domain => {
-      // Check if current hostname ends with the whitelisted domain
-      // This allows subdomains (e.g., www.amazon.com matches amazon.com)
-      return currentHostname === domain || currentHostname.endsWith('.' + domain);
-    });
+      return whitelist.some(domain => {
+        // Check if current hostname ends with the whitelisted domain
+        // This allows subdomains (e.g., www.amazon.com matches amazon.com)
+        return currentHostname === domain || currentHostname.endsWith('.' + domain);
+      });
+    } catch (e) {
+      console.error('[Think twice] Error checking whitelist:', e);
+      return false;
+    }
+  }
+
+  createVideoOverlay() {
+    // Create overlay container
+    const overlay = document.createElement('div');
+    overlay.id = 'think-twice-overlay';
+    overlay.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0, 0, 0, 0.95);
+      z-index: 999999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    `;
+
+    // Create video element
+    const video = document.createElement('video');
+    video.style.cssText = `
+      max-width: 80%;
+      max-height: 80%;
+      border-radius: 8px;
+    `;
+    video.autoplay = true;
+    video.loop = true;
+    video.muted = false;
+    video.src = chrome.runtime.getURL('videos/pausito.mp4');
+
+    overlay.appendChild(video);
+    document.body.appendChild(overlay);
+
+    return overlay;
+  }
+
+  removeVideoOverlay() {
+    const overlay = document.getElementById('think-twice-overlay');
+    if (overlay) {
+      overlay.remove();
+    }
   }
 
   async showAlert() {
@@ -85,7 +135,10 @@ class CheckoutBlocker {
     }
 
     // Get user context from storage
-    const userContext = await this.getUserContext();
+    const userContext = this.getUserContext();
+
+    // Show video overlay while waiting
+    this.createVideoOverlay();
 
     // Make API request
     try {
@@ -112,6 +165,9 @@ class CheckoutBlocker {
       const alertMessage = data.question || '¿Estás seguro que quieres gastar tu dinero en estupideces?';
       const confirmed = confirm(alertMessage);
 
+      // Remove video overlay after user responds
+      this.removeVideoOverlay();
+
       this.lastAlertTime = Date.now();
       this.saveLastAlertTime();
       console.log('[Think twice] Alert shown at', new Date(this.lastAlertTime));
@@ -121,6 +177,10 @@ class CheckoutBlocker {
 
       // Fallback to default message if API fails
       const confirmed = confirm('¿Estás seguro que quieres gastar tu dinero en estupideces?');
+
+      // Remove video overlay after user responds
+      this.removeVideoOverlay();
+
       this.lastAlertTime = Date.now();
       this.saveLastAlertTime();
       console.log('[Think twice] Alert shown at', new Date(this.lastAlertTime));
@@ -158,7 +218,7 @@ class CheckoutBlocker {
 
     document.addEventListener('click', async (e) => {
       // Check if site is whitelisted
-      if (await this.isWhitelisted()) {
+      if (this.isWhitelisted()) {
         console.log('[Think twice] Site is whitelisted, skipping interception');
         return;
       }
@@ -247,4 +307,7 @@ const blocker = new CheckoutBlocker();
 blocker.init();
 
 // Log helper message
-console.log('[Think twice] To clear cooldown, run: localStorage.removeItem("checkoutBlockerLastAlert")');
+console.log('[Think twice] Helper commands:');
+console.log('  Clear cooldown: localStorage.removeItem("checkoutBlockerLastAlert")');
+console.log('  Clear context: localStorage.removeItem("thinkTwiceUserContext")');
+console.log('  Clear whitelist: localStorage.removeItem("thinkTwiceWhitelist")');

@@ -10,14 +10,20 @@ document.addEventListener('DOMContentLoaded', () => {
   const whitelistStatusMessage = document.getElementById('whitelistStatusMessage');
 
   // Load saved context and whitelist on popup open
-  chrome.storage.local.get(['userContext', 'whitelist'], (result) => {
-    if (result.userContext) {
-      textarea.value = result.userContext;
+  try {
+    const savedContext = localStorage.getItem('thinkTwiceUserContext');
+    if (savedContext) {
+      textarea.value = savedContext;
     }
-    if (result.whitelist) {
-      whitelistTextarea.value = result.whitelist.join('\n');
+
+    const savedWhitelist = localStorage.getItem('thinkTwiceWhitelist');
+    if (savedWhitelist) {
+      const whitelist = JSON.parse(savedWhitelist);
+      whitelistTextarea.value = whitelist.join('\n');
     }
-  });
+  } catch (e) {
+    console.error('[Think twice] Error loading saved data:', e);
+  }
 
   // Save context when button is clicked
   saveBtn.addEventListener('click', () => {
@@ -28,7 +34,8 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    chrome.storage.local.set({ userContext: context }, () => {
+    try {
+      localStorage.setItem('thinkTwiceUserContext', context);
       showMessage(statusMessage, 'Context saved successfully!', 'success');
 
       // Clear message after 2 seconds
@@ -36,7 +43,10 @@ document.addEventListener('DOMContentLoaded', () => {
         statusMessage.className = 'status-message';
         statusMessage.textContent = '';
       }, 2000);
-    });
+    } catch (e) {
+      console.error('[Think twice] Error saving context:', e);
+      showMessage(statusMessage, 'Error saving context', 'error');
+    }
   });
 
   // Save whitelist when button is clicked
@@ -47,7 +57,8 @@ document.addEventListener('DOMContentLoaded', () => {
       .map(domain => domain.trim())
       .filter(domain => domain.length > 0);
 
-    chrome.storage.local.set({ whitelist: whitelist }, () => {
+    try {
+      localStorage.setItem('thinkTwiceWhitelist', JSON.stringify(whitelist));
       showMessage(whitelistStatusMessage, 'Whitelist saved successfully!', 'success');
 
       // Clear message after 2 seconds
@@ -55,7 +66,10 @@ document.addEventListener('DOMContentLoaded', () => {
         whitelistStatusMessage.className = 'status-message';
         whitelistStatusMessage.textContent = '';
       }, 2000);
-    });
+    } catch (e) {
+      console.error('[Think twice] Error saving whitelist:', e);
+      showMessage(whitelistStatusMessage, 'Error saving whitelist', 'error');
+    }
   });
 
   function showMessage(element, message, type) {
