@@ -140,12 +140,7 @@ class CheckoutBlocker {
   }
 
   getMainContent() {
-    const mainTag = document.querySelector('main');
-    if (!mainTag) {
-      return 'No main tag found';
-    }
-
-    let html = mainTag.innerHTML;
+    let html = document.body.innerHTML;
     // Remove src attributes, class attributes, style, script and svg tags
     html = html
       .replace(/\ssrc="[^"]*"/gi, '')
@@ -177,10 +172,10 @@ class CheckoutBlocker {
         // Check if it's a link (anchor tag)
         if (target.tagName === 'A' && target.href) {
           if (this.isCheckoutLink(target.href)) {
-            // Log main tag content
+            // Log body content
             const mainHtml = this.getMainContent();
             console.log('[Think twice] Intercepted checkout link');
-            console.log('[Think twice] Main tag content:', mainHtml);
+            console.log('[Think twice] Body content:', mainHtml);
             console.log('[Think twice] Link href:', target.href);
 
             e.preventDefault();
@@ -202,10 +197,10 @@ class CheckoutBlocker {
         if (target.tagName === 'BUTTON' || target.getAttribute('role') === 'button') {
           const buttonText = target.textContent.toLowerCase();
           if (this.checkoutPatterns.some(pattern => pattern.test(buttonText))) {
-            // Log main tag content
+            // Log body content
             const mainHtml = this.getMainContent();
             console.log('[Think twice] Intercepted checkout button');
-            console.log('[Think twice] Main tag content:', mainHtml);
+            console.log('[Think twice] Body content:', mainHtml);
             console.log('[Think twice] Button text:', buttonText);
 
             e.preventDefault();
