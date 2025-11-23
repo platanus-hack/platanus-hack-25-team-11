@@ -287,7 +287,7 @@ class CheckoutBlocker {
     `;
 
     const cancelBtn = document.createElement('button');
-    cancelBtn.textContent = 'No, cancelar';
+    cancelBtn.textContent = 'Cancelar';
     cancelBtn.style.cssText = `
       padding: 1rem 2rem;
       border: 2px solid white;
@@ -310,7 +310,7 @@ class CheckoutBlocker {
     };
 
     const confirmBtn = document.createElement('button');
-    confirmBtn.textContent = 'Sí, continuar';
+    confirmBtn.textContent = 'Continuar';
     confirmBtn.style.cssText = `
       padding: 1rem 2rem;
       border: none;
@@ -478,6 +478,16 @@ class CheckoutBlocker {
     console.log('[Think twice] Setting up click interception');
 
     document.addEventListener('click', async (e) => {
+      // Check if this is a confirmed click that should bypass interception
+      let checkTarget = e.target;
+      while (checkTarget && checkTarget !== document.body) {
+        if (checkTarget.getAttribute && checkTarget.getAttribute('data-think-twice-confirmed') === 'true') {
+          console.log('[Think twice] Bypassing interception for confirmed action');
+          return;
+        }
+        checkTarget = checkTarget.parentElement;
+      }
+
       // Check if site is whitelisted
       if (this.isWhitelisted()) {
         console.log('[Think twice] Site is whitelisted, skipping interception');
@@ -533,8 +543,21 @@ class CheckoutBlocker {
               console.log('[Think twice] User cancelled');
               return false;
             }
-            // If confirmed, let the button's original action proceed
+            // If confirmed, trigger the button's action
             console.log('[Think twice] User confirmed button click');
+
+            // Temporarily mark this button to bypass interception
+            target.setAttribute('data-think-twice-confirmed', 'true');
+
+            // Trigger the button click
+            target.click();
+
+            // Clean up the marker after a short delay
+            setTimeout(() => {
+              target.removeAttribute('data-think-twice-confirmed');
+            }, 100);
+
+            return false;
           }
         }
 
