@@ -26,7 +26,7 @@ class CheckoutBlocker {
     ];
 
     this.lastAlertTime = 0;
-    this.ALERT_COOLDOWN = 30 * 1000; // 30 seconds in milliseconds
+    this.ALERT_COOLDOWN = 0 * 1000; // 0 seconds in milliseconds
     this.isEnabled = true; // Default to enabled
     this.loadLastAlertTime();
     this.loadEnabledState();
@@ -72,8 +72,17 @@ class CheckoutBlocker {
 
   async getUserContext() {
     try {
-      const result = await chrome.storage.local.get('thinkTwiceUserContext');
-      return result.thinkTwiceUserContext || '';
+      const result = await chrome.storage.local.get(['thinkTwiceUserContext', 'thinkTwiceDankMode']);
+      let context = result.thinkTwiceUserContext || '';
+      const isDankMode = result.thinkTwiceDankMode || false;
+
+      if (isDankMode && context) {
+        context += '\n ESTOY ES MUY IMPORTANTE: RESPONDE DE MANERA SUPERDANK 🔥🔥';
+      } else if (isDankMode && !context) {
+        context = 'ESTOY ES MUY IMPORTANTE: RESPONDE DE MANERA SUPERDANK 🔥🔥';
+      }
+
+      return context;
     } catch (e) {
       console.error('[Think twice] Error getting user context:', e);
       return '';
@@ -480,7 +489,33 @@ class CheckoutBlocker {
   }
 
   getMainContent() {
-    let html = document.body.innerHTML;
+    // Clone the body to avoid modifying the actual DOM
+    const bodyClone = document.body.cloneNode(true);
+
+    // Remove recommendation sections by class name patterns
+    const recommendPatterns = [
+      'recommend',
+      'recommendation',
+      'suggested',
+      'you-may-like',
+      'related-products',
+      'similar-items',
+      'also-bought',
+      'customers-also'
+    ];
+
+    // Find and remove elements with recommendation classes
+    const allElements = bodyClone.querySelectorAll('*');
+    allElements.forEach(element => {
+      const className = element.className || '';
+      const classString = typeof className === 'string' ? className : className.toString();
+
+      if (recommendPatterns.some(pattern => classString.toLowerCase().includes(pattern))) {
+        element.remove();
+      }
+    });
+
+    let html = bodyClone.innerHTML;
     // Remove src attributes, class attributes, style, script and svg tags
     html = html
       .replace(/\ssrc="[^"]*"/gi, '')

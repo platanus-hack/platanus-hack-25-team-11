@@ -11,10 +11,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   const extensionToggle = document.getElementById('extensionToggle');
   const toggleSwitch = extensionToggle.closest('.toggle-switch');
+  const dankToggle = document.getElementById('dankToggle');
+  const dankToggleSwitch = dankToggle.closest('.toggle-switch');
 
   // Load saved context, whitelist, and enabled state on popup open
   try {
-    const result = await chrome.storage.local.get(['thinkTwiceUserContext', 'thinkTwiceWhitelist', 'thinkTwiceEnabled']);
+    const result = await chrome.storage.local.get(['thinkTwiceUserContext', 'thinkTwiceWhitelist', 'thinkTwiceEnabled', 'thinkTwiceDankMode']);
 
     if (result.thinkTwiceUserContext) {
       textarea.value = result.thinkTwiceUserContext;
@@ -29,9 +31,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     const isEnabled = result.thinkTwiceEnabled !== undefined ? result.thinkTwiceEnabled : true;
     extensionToggle.checked = isEnabled;
 
+    // Default to disabled for dank mode
+    const isDankMode = result.thinkTwiceDankMode || false;
+    dankToggle.checked = isDankMode;
+
     // Enable animations after initial state is set
     requestAnimationFrame(() => {
       toggleSwitch.classList.add('animated');
+      dankToggleSwitch.classList.add('animated');
     });
   } catch (e) {
     console.error('[Think twice] Error loading saved data:', e);
@@ -45,6 +52,17 @@ document.addEventListener('DOMContentLoaded', async () => {
       console.log('[Think twice] Extension', isEnabled ? 'enabled' : 'disabled');
     } catch (e) {
       console.error('[Think twice] Error saving enabled state:', e);
+    }
+  });
+
+  // Handle dank toggle change
+  dankToggle.addEventListener('change', async () => {
+    try {
+      const isDankMode = dankToggle.checked;
+      await chrome.storage.local.set({ thinkTwiceDankMode: isDankMode });
+      console.log('[Think twice] Dank mode', isDankMode ? 'enabled' : 'disabled');
+    } catch (e) {
+      console.error('[Think twice] Error saving dank mode state:', e);
     }
   });
 
