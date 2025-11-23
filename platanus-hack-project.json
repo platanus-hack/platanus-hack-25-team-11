@@ -1,4 +1,5 @@
 {
   "project-name": "ThinkTwice with Pausito",
-  "project-description-spanish": "ThinkTwice es una extensión de Chrome con IA que detecta cuando estás a punto de hacer una compra online y te hace pausar por 30 segundos. No te prohíbe comprar - te empodera a decidir conscientemente en el momento crítico, combatiendo el diseño manipulativo del e-commerce."
+  "project-description-spanish": "ThinkTwice es una extensión de Chrome con IA que detecta cuando estás a punto de hacer una compra online y te hace pausar por 30 segundos. No te prohíbe comprar - te empodera a decidir conscientemente en el momento crítico, combatiendo el diseño manipulativo del e-commerce.",
+  "deploy-url": "https://github.com/platanus-hack/platanus-hack-25-team-11/releases/download/v1.0.0/think-twice-v1.0.0.zip"
 }
