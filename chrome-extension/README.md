@@ -54,9 +54,9 @@ Icons should be placed in the `icons/` directory:
 
 ### Debugging
 
-To clear the 5-minute cooldown for testing:
+To clear the 30-second cooldown for testing:
 ```javascript
-localStorage.removeItem("checkoutBlockerLastAlert")
+chrome.storage.local.remove("checkoutBlockerLastAlert")
 ```
 
 ## Files Structure

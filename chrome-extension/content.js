@@ -26,20 +26,20 @@ class CheckoutBlocker {
     ];
 
     this.lastAlertTime = 0;
-    this.ALERT_COOLDOWN = 5 * 60 * 1000; // 5 minutes in milliseconds
+    this.ALERT_COOLDOWN = 30 * 1000; // 30 seconds in milliseconds
     this.loadLastAlertTime();
   }
 
-  loadLastAlertTime() {
-    const saved = localStorage.getItem('checkoutBlockerLastAlert');
-    if (saved) {
-      this.lastAlertTime = parseInt(saved, 10);
+  async loadLastAlertTime() {
+    const result = await chrome.storage.local.get('checkoutBlockerLastAlert');
+    if (result.checkoutBlockerLastAlert) {
+      this.lastAlertTime = parseInt(result.checkoutBlockerLastAlert, 10);
       console.log('[Think twice] Loaded last alert time:', new Date(this.lastAlertTime));
     }
   }
 
-  saveLastAlertTime() {
-    localStorage.setItem('checkoutBlockerLastAlert', this.lastAlertTime.toString());
+  async saveLastAlertTime() {
+    await chrome.storage.local.set({ checkoutBlockerLastAlert: this.lastAlertTime.toString() });
     console.log('[Think twice] Saved last alert time:', new Date(this.lastAlertTime));
   }
 
@@ -52,28 +52,29 @@ class CheckoutBlocker {
     return true;
   }
 
-  getUserContext() {
+  async getUserContext() {
     try {
-      return localStorage.getItem('thinkTwiceUserContext') || '';
+      const result = await chrome.storage.local.get('thinkTwiceUserContext');
+      return result.thinkTwiceUserContext || '';
     } catch (e) {
       console.error('[Think twice] Error getting user context:', e);
       return '';
     }
   }
 
-  getWhitelist() {
+  async getWhitelist() {
     try {
-      const saved = localStorage.getItem('thinkTwiceWhitelist');
-      return saved ? JSON.parse(saved) : [];
+      const result = await chrome.storage.local.get('thinkTwiceWhitelist');
+      return result.thinkTwiceWhitelist ? JSON.parse(result.thinkTwiceWhitelist) : [];
     } catch (e) {
       console.error('[Think twice] Error getting whitelist:', e);
       return [];
     }
   }
 
-  isWhitelisted() {
+  async isWhitelisted() {
     try {
-      const whitelist = this.getWhitelist();
+      const whitelist = await this.getWhitelist();
       const currentHostname = window.location.hostname;
 
       return whitelist.some(domain => {
@@ -380,7 +381,7 @@ class CheckoutBlocker {
     }
 
     // Get user context from storage
-    const userContext = this.getUserContext();
+    const userContext = await this.getUserContext();
 
     // Show video overlay while waiting
     this.createVideoOverlay();
@@ -477,98 +478,130 @@ class CheckoutBlocker {
   setupClickInterception() {
     console.log('[Think twice] Setting up click interception');
 
-    document.addEventListener('click', async (e) => {
-      // Check if this is a confirmed click that should bypass interception
-      let checkTarget = e.target;
-      while (checkTarget && checkTarget !== document.body) {
-        if (checkTarget.getAttribute && checkTarget.getAttribute('data-think-twice-confirmed') === 'true') {
-          console.log('[Think twice] Bypassing interception for confirmed action');
-          return;
-        }
-        checkTarget = checkTarget.parentElement;
-      }
-
-      // Check if site is whitelisted
-      if (this.isWhitelisted()) {
-        console.log('[Think twice] Site is whitelisted, skipping interception');
-        return;
-      }
-
-      // Only intercept on cart pages
-      if (!this.isCartPage()) return;
-
-      // Traverse up to find if we clicked on a checkout link or button
-      let target = e.target;
-      while (target && target !== document.body) {
-        // Check if it's a link (anchor tag)
-        if (target.tagName === 'A' && target.href) {
-          if (this.isCheckoutLink(target.href)) {
-            // Log body content
-            const mainHtml = this.getMainContent();
-            console.log('[Think twice] Intercepted checkout link');
-            console.log('[Think twice] Body content:', mainHtml);
-            console.log('[Think twice] Link href:', target.href);
-
-            e.preventDefault();
-            e.stopPropagation();
-            e.stopImmediatePropagation();
-
-            const confirmed = await this.showAlert();
-            if (confirmed) {
-              console.log('[Think twice] User confirmed, navigating to:', target.href);
-              window.location.href = target.href;
-            } else {
-              console.log('[Think twice] User cancelled');
-            }
-            return false;
+    document.addEventListener('click', (e) => {
+      try {
+        // Check if this is a confirmed click that should bypass interception
+        let checkTarget = e.target;
+        while (checkTarget && checkTarget !== document.body) {
+          if (checkTarget.getAttribute && checkTarget.getAttribute('data-think-twice-confirmed') === 'true') {
+            console.log('[Think twice] Bypassing interception for confirmed action');
+            return;
           }
+          checkTarget = checkTarget.parentElement;
         }
 
-        // Check if it's a button
-        if (target.tagName === 'BUTTON' || target.getAttribute('role') === 'button') {
-          const buttonText = target.textContent.toLowerCase();
-          if (this.checkoutPatterns.some(pattern => pattern.test(buttonText))) {
-            // Log body content
-            const mainHtml = this.getMainContent();
-            console.log('[Think twice] Intercepted checkout button');
-            console.log('[Think twice] Body content:', mainHtml);
-            console.log('[Think twice] Button text:', buttonText);
+        // Only intercept on cart pages
+        const isCart = this.isCartPage();
+        console.log('[Think twice] Is cart page?', isCart, 'URL:', window.location.href);
+        if (!isCart) return;
 
-            e.preventDefault();
-            e.stopPropagation();
-            e.stopImmediatePropagation();
+        // Traverse up to find if we clicked on a checkout link or button
+        console.log('[Think twice] Checking target:', e.target);
+        let target = e.target;
+        while (target && target !== document.body) {
+          // Check if it's a link (anchor tag)
+          if (target.tagName === 'A' && target.href) {
+            console.log('[Think twice] Found link:', target.href);
+            if (this.isCheckoutLink(target.href)) {
+              // MUST prevent default synchronously
+              e.preventDefault();
+              e.stopPropagation();
+              e.stopImmediatePropagation();
 
-            const confirmed = await this.showAlert();
-            if (!confirmed) {
-              console.log('[Think twice] User cancelled');
+              // Log body content
+              const mainHtml = this.getMainContent();
+              console.log('[Think twice] Intercepted checkout link');
+              console.log('[Think twice] Body content:', mainHtml);
+              console.log('[Think twice] Link href:', target.href);
+
+              // Handle async logic separately
+              this.handleCheckoutLink(target.href);
               return false;
             }
-            // If confirmed, trigger the button's action
-            console.log('[Think twice] User confirmed button click');
-
-            // Temporarily mark this button to bypass interception
-            target.setAttribute('data-think-twice-confirmed', 'true');
-
-            // Trigger the button click
-            target.click();
-
-            // Clean up the marker after a short delay
-            setTimeout(() => {
-              target.removeAttribute('data-think-twice-confirmed');
-            }, 100);
-
-            return false;
           }
-        }
 
-        target = target.parentElement;
+          // Check if it's a button
+          if (target.tagName === 'BUTTON' || target.getAttribute('role') === 'button') {
+            const buttonText = target.textContent.toLowerCase();
+            console.log('[Think twice] Found button:', buttonText);
+            if (this.checkoutPatterns.some(pattern => pattern.test(buttonText))) {
+              // MUST prevent default synchronously
+              e.preventDefault();
+              e.stopPropagation();
+              e.stopImmediatePropagation();
+
+              // Log body content
+              const mainHtml = this.getMainContent();
+              console.log('[Think twice] Intercepted checkout button');
+              console.log('[Think twice] Body content:', mainHtml);
+              console.log('[Think twice] Button text:', buttonText);
+
+              // Handle async logic separately
+              this.handleCheckoutButton(target);
+              return false;
+            }
+          }
+
+          target = target.parentElement;
+        }
+      } catch (error) {
+        console.error('[Think twice] Error in click handler:', error);
       }
     }, true); // Use capture phase
 
     console.log('[Think twice] Click interception ready');
   }
 
+  async handleCheckoutLink(href) {
+    try {
+      // Check if site is whitelisted
+      if (await this.isWhitelisted()) {
+        console.log('[Think twice] Site is whitelisted, navigating to:', href);
+        window.location.href = href;
+        return;
+      }
 
+      const confirmed = await this.showAlert();
+      if (confirmed) {
+        console.log('[Think twice] User confirmed, navigating to:', href);
+        window.location.href = href;
+      } else {
+        console.log('[Think twice] User cancelled');
+      }
+    } catch (error) {
+      console.error('[Think twice] Error in handleCheckoutLink:', error);
+    }
+  }
+
+  async handleCheckoutButton(button) {
+    try {
+      // Check if site is whitelisted
+      if (await this.isWhitelisted()) {
+        console.log('[Think twice] Site is whitelisted, clicking button');
+        button.setAttribute('data-think-twice-confirmed', 'true');
+        button.click();
+        setTimeout(() => button.removeAttribute('data-think-twice-confirmed'), 100);
+        return;
+      }
+
+      const confirmed = await this.showAlert();
+      if (confirmed) {
+        console.log('[Think twice] User confirmed button click');
+        // Temporarily mark this button to bypass interception
+        button.setAttribute('data-think-twice-confirmed', 'true');
+        // Trigger the button click
+        button.click();
+        // Clean up the marker after a short delay
+        setTimeout(() => {
+          button.removeAttribute('data-think-twice-confirmed');
+        }, 100);
+      } else {
+        console.log('[Think twice] User cancelled');
+      }
+    } catch (error) {
+      console.error('[Think twice] Error in handleCheckoutButton:', error);
+    }
+  }
 
   init() {
     console.log('[Think twice] Initializing...');
@@ -592,6 +625,6 @@ blocker.init();
 
 // Log helper message
 console.log('[Think twice] Helper commands:');
-console.log('  Clear cooldown: localStorage.removeItem("checkoutBlockerLastAlert")');
-console.log('  Clear context: localStorage.removeItem("thinkTwiceUserContext")');
-console.log('  Clear whitelist: localStorage.removeItem("thinkTwiceWhitelist")');
+console.log('  Clear cooldown: chrome.storage.local.remove("checkoutBlockerLastAlert")');
+console.log('  Clear context: chrome.storage.local.remove("thinkTwiceUserContext")');
+console.log('  Clear whitelist: chrome.storage.local.remove("thinkTwiceWhitelist")');

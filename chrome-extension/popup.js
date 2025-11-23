@@ -1,6 +1,6 @@
 // Think twice - Popup script for managing user context
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   const textarea = document.getElementById('userContext');
   const saveBtn = document.getElementById('saveBtn');
   const statusMessage = document.getElementById('statusMessage');
@@ -11,14 +11,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Load saved context and whitelist on popup open
   try {
-    const savedContext = localStorage.getItem('thinkTwiceUserContext');
-    if (savedContext) {
-      textarea.value = savedContext;
+    const result = await chrome.storage.local.get(['thinkTwiceUserContext', 'thinkTwiceWhitelist']);
+
+    if (result.thinkTwiceUserContext) {
+      textarea.value = result.thinkTwiceUserContext;
     }
 
-    const savedWhitelist = localStorage.getItem('thinkTwiceWhitelist');
-    if (savedWhitelist) {
-      const whitelist = JSON.parse(savedWhitelist);
+    if (result.thinkTwiceWhitelist) {
+      const whitelist = JSON.parse(result.thinkTwiceWhitelist);
       whitelistTextarea.value = whitelist.join('\n');
     }
   } catch (e) {
@@ -26,7 +26,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Save context when button is clicked
-  saveBtn.addEventListener('click', () => {
+  saveBtn.addEventListener('click', async () => {
     const context = textarea.value.trim();
 
     if (!context) {
@@ -35,7 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     try {
-      localStorage.setItem('thinkTwiceUserContext', context);
+      await chrome.storage.local.set({ thinkTwiceUserContext: context });
       showMessage(statusMessage, 'Context saved successfully!', 'success');
 
       // Clear message after 2 seconds
@@ -50,7 +50,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // Save whitelist when button is clicked
-  saveWhitelistBtn.addEventListener('click', () => {
+  saveWhitelistBtn.addEventListener('click', async () => {
     const whitelistText = whitelistTextarea.value.trim();
     const whitelist = whitelistText
       .split('\n')
@@ -58,7 +58,7 @@ document.addEventListener('DOMContentLoaded', () => {
       .filter(domain => domain.length > 0);
 
     try {
-      localStorage.setItem('thinkTwiceWhitelist', JSON.stringify(whitelist));
+      await chrome.storage.local.set({ thinkTwiceWhitelist: JSON.stringify(whitelist) });
       showMessage(whitelistStatusMessage, 'Whitelist saved successfully!', 'success');
 
       // Clear message after 2 seconds
