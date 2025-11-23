@@ -53,13 +53,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     const context = textarea.value.trim();
 
     if (!context) {
-      showMessage(statusMessage, 'Please enter your context', 'error');
+      showMessage(statusMessage, 'Por favor ingresa tu contexto', 'error');
       return;
     }
 
     try {
       await chrome.storage.local.set({ thinkTwiceUserContext: context });
-      showMessage(statusMessage, 'Context saved successfully!', 'success');
+      showMessage(statusMessage, '¡Contexto guardado!', 'success');
 
       // Clear message after 2 seconds
       setTimeout(() => {
@@ -68,7 +68,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       }, 2000);
     } catch (e) {
       console.error('[Think twice] Error saving context:', e);
-      showMessage(statusMessage, 'Error saving context', 'error');
+      showMessage(statusMessage, 'Error al guardar contexto', 'error');
     }
   });
 
@@ -82,7 +82,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     try {
       await chrome.storage.local.set({ thinkTwiceWhitelist: JSON.stringify(whitelist) });
-      showMessage(whitelistStatusMessage, 'Whitelist saved successfully!', 'success');
+      showMessage(whitelistStatusMessage, '¡Lista guardada!', 'success');
 
       // Clear message after 2 seconds
       setTimeout(() => {
@@ -91,7 +91,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       }, 2000);
     } catch (e) {
       console.error('[Think twice] Error saving whitelist:', e);
-      showMessage(whitelistStatusMessage, 'Error saving whitelist', 'error');
+      showMessage(whitelistStatusMessage, 'Error al guardar lista', 'error');
     }
   });
 

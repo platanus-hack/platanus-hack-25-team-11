@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Think twice",
   "version": "1.0.0",
-  "description": "Think twice before making online purchases",
+  "description": "Piénsalo dos veces antes de comprar en línea",
   "permissions": [
     "activeTab",
     "storage"
